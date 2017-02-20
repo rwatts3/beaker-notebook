@@ -315,6 +315,9 @@
           bkHelper.setThemeToBeakerObject();
         },
         getTheme: function () {
+          if (this.theme === undefined) {
+            return "default";
+          }
           return this.theme;
         },
         setFSOrderBy: function (fs_order_by) {
@@ -700,14 +703,10 @@
           bkHelper.setFullScreen(cm, !bkHelper.isFullScreen(cm));
         };
 
-        var findReplace = function (cm) {
-          bkHelper.getBkNotebookViewModel().showSearchReplace(cm, scope.cellmodel);
-        }
+        CodeMirror.commands.save = bkHelper.saveNotebook;
+        CodeMirror.Vim.defineEx('wquit', 'wq', bkCoreManager.getBkApp().saveNotebookAndClose);
+        CodeMirror.Vim.defineEx('quit', 'q', bkHelper.closeNotebook);
         
-        CodeMirror.commands.save = function (){
-	        bkHelper.saveNotebook();
-        };
-
         var keys = {
             "Up" : goUpOrMoveFocusUp,
             "Down" : goDownOrMoveFocusDown,
@@ -747,12 +746,6 @@
           keys["Ctrl-C"] = cancel;
         }else{
           keys["Alt-C"] = cancel;
-        }
-        
-        if(bkHelper.isMacOS){
-          keys["Ctrl-F"] = findReplace;
-        }else{
-          keys["Alt-F"] = findReplace;
         }
 
         if (codeMirrorExtension.extraKeys !== undefined) {
@@ -1321,7 +1314,7 @@
       }
     };
 
-    if (window.beakerRegister === undefined || window.beakerRegister.isEmbedded === undefined) {
+    if (window.beakerRegister === undefined || window.beakerRegister.isPublication === undefined) {
       bkUtils.getBeakerPreference('fs-order-by').then(function (fs_order_by) {
         bkCoreManager._prefs.fs_order_by = !fs_order_by || fs_order_by.length === 0 ? 'uri' : fs_order_by;
       }).catch(function (response) {
@@ -1348,14 +1341,14 @@
       $timeout(function() {
         // there's a race condition in calling setTheme during bootstrap
         bkCoreManager._prefs.setTheme(GLOBALS.THEMES.DEFAULT);
-      }, 100);
+      }, 0);
     } else {
       bkCoreManager._prefs.fs_order_by = window.beakerRegister.prefsPreset.fs_order_by;
       bkCoreManager._prefs.fs_reverse = window.beakerRegister.prefsPreset.fs_reverse;
       $timeout(function() {
         // there's a race condition in calling setTheme during bootstrap
         bkCoreManager._prefs.setTheme(window.beakerRegister.prefsPreset.theme);
-      }, 100);
+      }, 0);
     }
 
     return bkCoreManager;
@@ -1910,6 +1903,11 @@
         return getImportNotebookFileTypePattern();
       },
       isFileForImportDragging: function (event) {
+        if (window.beakerRegister !== undefined && window.beakerRegister.hooks !== undefined && window.beakerRegister.hooks.disableDragAndDropImport !== undefined) {
+          if(window.beakerRegister.hooks.disableDragAndDropImport()) {
+            return false;
+          }
+        }
         if(event.originalEvent) {
           event = event.originalEvent;
         }
@@ -1924,6 +1922,11 @@
         return false;
       },
       isFileForImport: function (item) {
+        if (window.beakerRegister !== undefined && window.beakerRegister.hooks !== undefined && window.beakerRegister.hooks.disableDragAndDropImport !== undefined) {
+          if(window.beakerRegister.hooks.disableDragAndDropImport()) {
+            return false;
+          }
+        }
         return item.type !== undefined && new RegExp(getImportNotebookFileTypePattern(), 'i').test(item.type);
       },
       loadImageFileAsString: function (file) {
@@ -1941,6 +1944,9 @@
       },
       wrapImageDataUrl: wrapImageDataUrl,
       configureDropEventHandlingForCodeMirror: function (cm, allowImageDropping) {
+        if (window.beakerRegister !== undefined && window.beakerRegister.hooks !== undefined && window.beakerRegister.hooks.codemirrorEventConfig !== undefined) {
+          window.beakerRegister.hooks.codemirrorEventConfig(cm, allowImageDropping);
+        }
         cm.on('drop', function (cm, e) {
           if(allowImageDropping && !allowImageDropping()) {
             return;

@@ -95,6 +95,10 @@
           for (var i = 0; i < plots.length; i++) {
 
             var plotmodel = plots[i];
+
+            plotmodel.xAxis.showGridlineLabels = scope.model.getCellModel().x_tickLabels_visible;
+            plotmodel.yAxis.showGridlineLabels = scope.model.getCellModel().y_tickLabels_visible;
+            
             plotmodel.plotIndex = i;
             var pl = {
               model : plotmodel,
@@ -234,7 +238,9 @@
               for (var i = 0; i < scope.models.length; i++) {
                 scope.models[i].state = { };
               }
-              scope.model.setDumpState(scope.dumpState());
+              if (scope.model.setDumpState !== undefined) {
+                scope.model.setDumpState(scope.dumpState());
+              }
             }
           }
         };
@@ -253,7 +259,9 @@
               for (var i = 0; i < scope.models.length; i++) {
                 scope.models[i].state = { };
               }
-              scope.model.setDumpState(scope.dumpState());
+              if (scope.model.setDumpState !== undefined) {
+                scope.model.setDumpState(scope.dumpState());
+              }
             }
           });
         }
